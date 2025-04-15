@@ -3,6 +3,7 @@ from flask_bcrypt import Bcrypt  # para encriptar y comparar
 from flask import Flask, request, jsonify # Para endpoints
 from flask_sqlalchemy import SQLAlchemy  # Para rutas
 from flask_jwt_extended import  JWTManager
+from routes.api_bp import api_bp
 from routes.admin_bp import admin_bp                       # Acá importamos rutas admin
 from routes.public_bp import public_bp                     # Acá importamos rutas public
 from routes.clasifica_comentarios_individuales_bp import clasifica_comentarios_individuales_bp
@@ -35,6 +36,7 @@ app.register_blueprint(admin_bp)  # poder registrarlo como un blueprint ( parte 
 
 app.register_blueprint(public_bp, url_prefix='/public')  # blueprint public_bp
 
+app.register_blueprint(api_bp, url_prefix='/api')  # blueprint public_bp
 
 app.register_blueprint(clasifica_comentarios_individuales_bp, url_prefix='/') # contiene ejemplos de executor y openai
 
@@ -92,7 +94,7 @@ def cargar_usuarios_iniciales():
 with app.app_context():
     db.init_app(app)
     db.create_all() # Nos aseguramos que este corriendo en el contexto del proyecto.
-    cargar_usuarios_iniciales()
+    # cargar_usuarios_iniciales()
 # -----------------------
 
 # AL FINAL ( detecta que encendimos el servidor desde terminal y nos da detalles de los errores )
