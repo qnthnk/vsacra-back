@@ -49,6 +49,15 @@ def handle_hello():
 
     return jsonify(response_body), 200
 
+@api_bp.route('/', methods=['GET'])
+def handle_base():
+
+    response_body = {
+        "message": "El sever funciona ok!"
+    }
+
+    return jsonify(response_body), 200
+
 @api_bp.route('/signup', methods = ['POST'])
 def sign_up():
     data = request.json
