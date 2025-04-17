@@ -64,6 +64,7 @@ def sign_up():
     first_name = data.get('first_name')
     first_last_name = data.get('first_last_name')
     second_last_name = data.get('second_last_name')
+    curp = data.get('curp')
     gender = data.get('gender')
     birthdate = data.get('birthdate')
     blood_type = data.get('blood_type')
@@ -92,6 +93,7 @@ def sign_up():
                 first_name = first_name,
                 first_last_name = first_last_name,
                 second_last_name = second_last_name,
+                curp = curp,
                 gender = gender,
                 birthdate = birthdate,
                 email = email,
@@ -418,8 +420,16 @@ def send_emergency():
     <ul>
         <li>Latitud: {latitude}</li>
         <li>Longitud: {longitude}</li>
+        <li><a href="https://www.google.com/maps?q=25.76941770710694,-100.42743563520318" target="_blank">Ver ubicación en Google Maps</a></li>
     </ul>
-    <p>Por favor, contacta con él/ella lo antes posible.</p>
+    <p>Este es el número de teléfono que registró para emergencias: {user.phone_number}</p>
+    <p>Por favor, haz contacto lo antes posible.</p>
+      <p>En caso de ser requerido, estos son sus datos clínicos prioritarios:</p>
+    <ul>
+        <li>Tipo de sangre: {user.blood_type}</li>
+        <li>Alergias: {user.allergy}</li>
+        <li>Enfermedades crónicas: {user.disease}</li>
+    </ul>
     """
 
     message = Mail(

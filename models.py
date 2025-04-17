@@ -8,6 +8,7 @@ class User(db.Model):
     first_name = db.Column(db.String(80), unique=False, nullable=False)
     first_last_name = db.Column(db.String(80), unique=False, nullable=False)
     second_last_name = db.Column(db.String(80), unique=False, nullable=False)
+    curp = db.Column(db.String(18), unique=False, nullable=False)
     gender = db.Column(db.String(15), unique=False, nullable=False)
     birthdate = db.Column(db.String(80), unique=False, nullable=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -37,6 +38,7 @@ class User(db.Model):
             "first_name": self.first_name,
             "first_last_name": self.first_last_name,
             "second_last_name": self.second_last_name,
+            "curp": self.curp,
             "gender": self.gender,
             "birthdate": self.birthdate,
             "email": self.email,
