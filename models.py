@@ -112,5 +112,23 @@ class Contact(db.Model):
             "phone_number": self.phone_number,
             "user_id": self.user_id
         }
+    
+class Complaint(db.Model):
+    __tablename__ = 'complaint'
+    id = db.Column(db.Integer, primary_key=True)
+    cause = db.Column(db.String(250), unique=False, nullable=False)
+    url_image_complaint = db.Column(db.String, nullable=True)
+    complaint_comment = db.Column(db.String(250), nullable=False)
+    status = db.Column(db.String(250), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    def serialize(self):
+        return {
+            "id": self.id,
+            "cause": self.cause,
+            "url_image_complaint": self.url_image_complaint,
+            "complaint_comment": self.complaint_comment,
+            "status": self.status,
+            "user_id": self.user_id
+        }
 
     

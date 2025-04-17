@@ -1,7 +1,7 @@
 from flask import Blueprint, send_file, make_response, request, jsonify, render_template, current_app, Response # Blueprint para modularizar y relacionar con app
 from flask_bcrypt import Bcrypt                                  # Bcrypt para encriptación
 from flask_jwt_extended import JWTManager ,create_access_token, jwt_required,get_jwt, get_jwt_identity   # Jwt para tokens
-from models import User, Administrator, Contact
+from models import User, Administrator, Contact, Complaint
 from database import db                                          # importa la db desde database.py
 from datetime import timedelta, datetime                         # importa tiempo especifico para rendimiento de token válido
 from utils.clasifica_utils import  get_evaluations_of_all
@@ -333,6 +333,26 @@ def add_contact():
 
     return jsonify(new_contact.serialize()), 201
 
+@api_bp.route('/complaint', methods=['POST', 'GET', 'PUT', 'DELETE'])
+# @jwt_required()
+def complaint():
+    data = request.get_json()
+
+    if not data or not all(key in data for key in ['cause', 'url_image_complaint', 'complaint_comment', 'status', 'user_id']):
+        return jsonify({"error": "Missing data"}), 400
+
+    new_complaint = Complaint(
+        cause=data['cause'],
+        url_image_complaint=data['url_image_complaint'],
+        complaint_comment=data['complaint_comment'],
+        status=data['status'],
+        user_id=data['user_id']
+    )
+
+    db.session.add(new_complaint)
+    db.session.commit()
+
+    return jsonify(new_complaint.serialize()), 201
 
 
 @api_bp.route('/logout', methods=['POST'])
@@ -362,6 +382,26 @@ def edit_contact(id):
 
     return jsonify(contact.serialize()), 200
 
+@api_bp.route('/editcomplaint/<int:id>', methods=['PUT'])
+def edit_complaint(id):
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "Missing data"}), 400
+
+    complaint = Complaint.query.get(id)
+    if not complaint:
+        return jsonify({"error": "Complaint not found"}), 404
+
+    complaint.cause = data.get('cause', complaint.cause)
+    complaint.url_image_complaint = data.get('url_image_complaint', complaint.url_image_complaint)
+    complaint.complaint_comment = data.get('complaint_comment', complaint.complaint_comment)
+    complaint.status = data.get('status', complaint.status)
+
+    db.session.commit()
+
+    return jsonify(complaint.serialize()), 200
+
 @api_bp.route('/deletecontact/<int:id>', methods=['DELETE'])
 def delete_contact(id):
     contact = Contact.query.get(id)
@@ -381,6 +421,16 @@ def view_contacts():
 
     contacts = Contact.query.filter_by(user_id=user_id).all()
     return jsonify([contact.serialize() for contact in contacts]), 200
+
+@api_bp.route('/viewcomplaints', methods=['GET'])
+def view_complaints():
+    user_id = request.args.get('user_id')  
+    if not user_id:
+        return jsonify({"error": "Missing user_id"}), 400
+
+    complaints = Complaint.query.filter_by(user_id=user_id).all()
+    return jsonify([complaint.serialize() for complaint in complaints]), 200
+
 
 @api_bp.route('/emergency', methods=['POST'])
 # @jwt_required()
