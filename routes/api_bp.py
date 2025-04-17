@@ -64,7 +64,6 @@ def sign_up():
     first_name = data.get('first_name')
     first_last_name = data.get('first_last_name')
     second_last_name = data.get('second_last_name')
-    nationality = data.get('nationality')
     gender = data.get('gender')
     birthdate = data.get('birthdate')
     blood_type = data.get('blood_type')
@@ -79,9 +78,6 @@ def sign_up():
     city = data.get('city')
     state = data.get('state')
     address = data.get('address')
-    home_country = data.get('home_country')
-    country_of_residence = data.get('country_of_residence')
-    country_of_destination = data.get('country_of_destination')
     zip_code = data.get('zip_code')
     latitude = data.get('latitude')
     longitude = data.get('longitude')
@@ -96,7 +92,6 @@ def sign_up():
                 first_name = first_name,
                 first_last_name = first_last_name,
                 second_last_name = second_last_name,
-                nationality = nationality,
                 gender = gender,
                 birthdate = birthdate,
                 email = email,
@@ -110,10 +105,7 @@ def sign_up():
                 disease = disease,
                 city = city,
                 address = address,
-                home_country = home_country,
                 state = state,
-                country_of_residence = country_of_residence,
-                country_of_destination = country_of_destination,
                 zip_code = zip_code,
                 longitude = longitude,
                 latitude = latitude
