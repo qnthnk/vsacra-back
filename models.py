@@ -120,6 +120,8 @@ class Complaint(db.Model):
     url_image_complaint = db.Column(db.String, nullable=True)
     complaint_comment = db.Column(db.String(250), nullable=False)
     status = db.Column(db.String(250), nullable=False)
+    latitude = db.Column(db.String(80), nullable=True)
+    longitude = db.Column(db.String(80), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     def serialize(self):
         return {
@@ -128,6 +130,8 @@ class Complaint(db.Model):
             "url_image_complaint": self.url_image_complaint,
             "complaint_comment": self.complaint_comment,
             "status": self.status,
+            "latitude": self.latitude,
+            "longitude": self.longitude
             "user_id": self.user_id
         }
 
