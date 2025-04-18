@@ -131,7 +131,7 @@ class Complaint(db.Model):
             "complaint_comment": self.complaint_comment,
             "status": self.status,
             "latitude": self.latitude,
-            "longitude": self.longitude
+            "longitude": self.longitude,
             "user_id": self.user_id
         }
 
