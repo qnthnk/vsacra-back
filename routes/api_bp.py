@@ -338,7 +338,7 @@ def add_contact():
 def complaint():
     data = request.get_json()
 
-    if not data or not all(key in data for key in ['cause', 'url_image_complaint', 'complaint_comment', 'status', 'user_id']):
+    if not data or not all(key in data for key in ['cause', 'url_image_complaint', 'complaint_comment', 'status','latitude','longitude' 'user_id']):
         return jsonify({"error": "Missing data"}), 400
 
     new_complaint = Complaint(
@@ -346,6 +346,8 @@ def complaint():
         url_image_complaint=data['url_image_complaint'],
         complaint_comment=data['complaint_comment'],
         status=data['status'],
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
         user_id=data['user_id']
     )
 
@@ -397,6 +399,8 @@ def edit_complaint(id):
     complaint.url_image_complaint = data.get('url_image_complaint', complaint.url_image_complaint)
     complaint.complaint_comment = data.get('complaint_comment', complaint.complaint_comment)
     complaint.status = data.get('status', complaint.status)
+    complaint.latitude = data.get('latitude',complaint.latitude)
+    complaint.longitude = data.get('longitude',complaint.longitude)
 
     db.session.commit()
 
