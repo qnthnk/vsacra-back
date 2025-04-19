@@ -321,11 +321,11 @@ def add_contact():
         return jsonify({"error": "Missing data"}), 400
 
     new_contact = Contact(
-        full_name=data['full_name'],
-        email=data['email'],
-        phone_number=data['phone_number'],
-        role=data['role'],
-        user_id=data['user_id']
+        full_name=data('full_name'),
+        email=data('email'),
+        phone_number=data('phone_number'),
+        role=data('role'),
+        user_id=data('user_id')
     )
 
     db.session.add(new_contact)
@@ -342,13 +342,13 @@ def complaint():
         return jsonify({"error": "Missing data"}), 400
 
     new_complaint = Complaint(
-        cause=data['cause'],
-        url_image_complaint=data['url_image_complaint'],
-        complaint_comment=data['complaint_comment'],
-        status=data['status'],
-        latitude = data.get['latitude'],
-        longitude = data.get['longitude'],
-        user_id=data['user_id']
+        cause=data('cause'),
+        url_image_complaint=data('url_image_complaint'),
+        complaint_comment=data('complaint_comment'),
+        status=data('status'),
+        latitude = data.get('latitude'),
+        longitude = data.get('longitude'),
+        user_id=data('user_id')
     )
 
     db.session.add(new_complaint)
