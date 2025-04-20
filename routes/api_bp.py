@@ -78,7 +78,10 @@ def sign_up():
     x = data.get('x')
     city = data.get('city')
     state = data.get('state')
-    address = data.get('address')
+    colonia_mex= data.get('colonia_mex')
+    street = data.get('street')
+    seccion = data.get('seccion')
+    house_number = data.get('house_number')
     zip_code = data.get('zip_code')
     latitude = data.get('latitude')
     longitude = data.get('longitude')
@@ -106,9 +109,12 @@ def sign_up():
                 allergy = allergy,
                 disease = disease,
                 city = city,
-                address = address,
                 state = state,
+                colonia_mex = colonia_mex,
+                street = street,
+                house_number = house_number,
                 zip_code = zip_code,
+                seccion = seccion,
                 longitude = longitude,
                 latitude = latitude
         )  

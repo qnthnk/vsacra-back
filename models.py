@@ -21,8 +21,11 @@ class User(db.Model):
     allergy = db.Column(db.String(80), unique=False, nullable=True)
     disease = db.Column(db.String(80), unique=False, nullable=True)
     city = db.Column(db.String(80), unique=False, nullable=False)
-    address = db.Column(db.String(80), unique=False, nullable=False)
     state = db.Column(db.String(80), unique=False, nullable=False)
+    colonia_mex = db.Column(db.String(80), unique=False, nullable=False)
+    house_number = db.Column(db.String(10), unique=False, nullable=False)
+    street = db.Column(db.String(80), unique=False, nullable=False)
+    seccion = db.Column(db.String(10), unique=False, nullable=False)
     zip_code = db.Column(db.String(80), unique=False, nullable=False)
     latitude = db.Column(db.String(80), nullable=True)
     longitude = db.Column(db.String(80), nullable=True)
@@ -50,8 +53,11 @@ class User(db.Model):
             "allergy": self.allergy,
             "disease": self.disease,
             "city": self.city,
-            "address": self.address,
             "state": self.state,
+            "colonia_mex": self.colonia_mex,
+            "house_number": self.house_number,
+            "street": self.street,
+            "seccion": self.seccion,
             "zip_code": self.zip_code,
             "latitude": self.latitude,
             "longitude": self.longitude
