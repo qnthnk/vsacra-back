@@ -20,13 +20,16 @@ class User(db.Model):
     blood_type = db.Column(db.String(5), unique=False, nullable=True)
     allergy = db.Column(db.String(80), unique=False, nullable=True)
     disease = db.Column(db.String(80), unique=False, nullable=True)
-    city = db.Column(db.String(80), unique=False, nullable=False)
     state = db.Column(db.String(80), unique=False, nullable=False)
     colonia_mex = db.Column(db.String(80), unique=False, nullable=False)
     house_number = db.Column(db.String(10), unique=False, nullable=False)
     street = db.Column(db.String(80), unique=False, nullable=False)
     seccion = db.Column(db.String(10), unique=False, nullable=False)
     zip_code = db.Column(db.String(80), unique=False, nullable=False)
+    distrito_federal = db.Column(db.String(80), unique=False, nullable=False)
+    distrito_local = db.Column(db.String(80), unique=False, nullable=False)
+    nombre_municipio = db.Column(db.String(80), unique=False, nullable=False)
+    tipo_seccion = db.Column(db.String(80), unique=False, nullable=False)
     latitude = db.Column(db.String(80), nullable=True)
     longitude = db.Column(db.String(80), nullable=True)
     administrator_id = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=True)
@@ -52,13 +55,16 @@ class User(db.Model):
             "blood_type": self.blood_type,
             "allergy": self.allergy,
             "disease": self.disease,
-            "city": self.city,
             "state": self.state,
             "colonia_mex": self.colonia_mex,
             "house_number": self.house_number,
             "street": self.street,
             "seccion": self.seccion,
             "zip_code": self.zip_code,
+            "distrito_federal": self.distrito_federal,
+            "distrito_local": self.distrito_local,
+            "nombre_municipio": self.nombre_municipio,
+            "tipo_seccion": self.tipo_seccion,
             "latitude": self.latitude,
             "longitude": self.longitude
             
