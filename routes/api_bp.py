@@ -328,7 +328,7 @@ def add_contact():
 
     new_contact = Contact(
         full_name=data['full_name'],
-        email=data('email'),
+        email=data['email'],
         phone_number=data['phone_number'],
         role=data['role'],
         user_id=data['user_id']
