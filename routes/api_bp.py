@@ -77,13 +77,16 @@ def sign_up():
     facebook = data.get('facebook')
     instagram = data.get('instagram')
     x = data.get('x')
-    city = data.get('city')
     state = data.get('state')
     colonia_mex= data.get('colonia_mex')
     street = data.get('street')
     seccion = data.get('seccion')
     house_number = data.get('house_number')
     zip_code = data.get('zip_code')
+    distrito_federal = data.get('distrito_federal')
+    distrito_local = data.get('distrito_local')
+    nombre_municipio = data.get('nombre_municipio')
+    tipo_seccion = data.get('tipo_seccion')
     latitude = data.get('latitude')
     longitude = data.get('longitude')
 
@@ -109,13 +112,16 @@ def sign_up():
                 blood_type = blood_type,
                 allergy = allergy,
                 disease = disease,
-                city = city,
                 state = state,
                 colonia_mex = colonia_mex,
-                street = street,
                 house_number = house_number,
+                street = street,
                 zip_code = zip_code,
                 seccion = seccion,
+                distrito_federal = distrito_federal,
+                distrito_local = distrito_local,
+                nombre_municipio = nombre_municipio,
+                tipo_seccion = tipo_seccion,
                 longitude = longitude,
                 latitude = latitude
         )  
