@@ -59,9 +59,31 @@ def handle_base():
 
     return jsonify(response_body), 200
 
-@api_bp.route('/signup', methods = ['POST'])
+@api_bp.route('/signup', methods=['POST'])
 def sign_up():
     data = request.json
+    
+    # 1. Validación de reCAPTCHA
+    recaptcha_token = data.get('recaptcha_token')
+    if not recaptcha_token:
+        return jsonify({"message": "Verificación reCAPTCHA requerida"}), 400
+    
+    # Verificar el token con Google
+    verify_url = "https://www.google.com/recaptcha/api/siteverify"
+    payload = {
+        'secret': os.environ.get('RECAPTCHA_SECRET_KEY'),
+        'response': recaptcha_token
+    }
+    response = requests.post(verify_url, data=payload)
+    result = response.json()
+    
+    if not result.get('success'):
+        return jsonify({
+            "message": "Verificación reCAPTCHA fallida",
+            "error_code": "invalid_recaptcha"
+        }), 400
+    
+    # 2. Procesar datos del formulario
     first_name = data.get('first_name')
     first_last_name = data.get('first_last_name')
     second_last_name = data.get('second_last_name')
@@ -78,7 +100,7 @@ def sign_up():
     instagram = data.get('instagram')
     x = data.get('x')
     state = data.get('state')
-    colonia_mex= data.get('colonia_mex')
+    colonia_mex = data.get('colonia_mex')
     street = data.get('street')
     seccion = data.get('seccion')
     house_number = data.get('house_number')
@@ -90,57 +112,56 @@ def sign_up():
     latitude = data.get('latitude')
     longitude = data.get('longitude')
 
+    # 3. Verificar si el usuario ya existe
     user_exists = User.query.filter_by(email=email).first() 
-    if user_exists is None:
-        print(user_exists, "creando nuevo usuario")
-        password_hash = bcrypt.generate_password_hash(password)
-        print(password_hash, "este el password hash")
+    if user_exists:
+        return jsonify({"message": "Email ya registrado. Intenta con uno nuevo."}), 400
+    
+    # 4. Crear nuevo usuario
+    password_hash = bcrypt.generate_password_hash(password)
 
-        new_user = User(
-                first_name = first_name,
-                first_last_name = first_last_name,
-                second_last_name = second_last_name,
-                curp = curp,
-                gender = gender,
-                birthdate = birthdate,
-                email = email,
-                password = password_hash,
-                phone_number = phone_number,
-                facebook = facebook,
-                instagram = instagram,
-                x = x,
-                blood_type = blood_type,
-                allergy = allergy,
-                disease = disease,
-                state = state,
-                colonia_mex = colonia_mex,
-                house_number = house_number,
-                street = street,
-                zip_code = zip_code,
-                seccion = seccion,
-                distrito_federal = distrito_federal,
-                distrito_local = distrito_local,
-                nombre_municipio = nombre_municipio,
-                tipo_seccion = tipo_seccion,
-                longitude = longitude,
-                latitude = latitude
-        )  
-        print("nuevo usuario creado")
-        try:
-            db.session.add(new_user)  
-            db.session.commit()
+    new_user = User(
+        first_name=first_name,
+        first_last_name=first_last_name,
+        second_last_name=second_last_name,
+        curp=curp,
+        gender=gender,
+        birthdate=birthdate,
+        email=email,
+        password=password_hash,
+        phone_number=phone_number,
+        facebook=facebook,
+        instagram=instagram,
+        x=x,
+        blood_type=blood_type,
+        allergy=allergy,
+        disease=disease,
+        state=state,
+        colonia_mex=colonia_mex,
+        house_number=house_number,
+        street=street,
+        zip_code=zip_code,
+        seccion=seccion,
+        distrito_federal=distrito_federal,
+        distrito_local=distrito_local,
+        nombre_municipio=nombre_municipio,
+        tipo_seccion=tipo_seccion,
+        longitude=longitude,
+        latitude=latitude
+    )  
 
-            
-        except Exception as error:
-            db.session.rollback()
-            return jsonify({"message": "Ha ocurrido un error"}), 500
+    try:
+        db.session.add(new_user)  
+        db.session.commit()
 
         return jsonify({
             "user": new_user.serialize(),
             "message": "Te has registrado! Redirigiéndote al inicio de sesión" 
         }), 200
-    else:
-        return jsonify({"message": "Email ya registrado. Intenta con uno nuevo."}), 400
+    except Exception as error:
+        db.session.rollback()
+        logger.error(f"Error en registro: {str(error)}")
+        return jsonify({"message": "Ha ocurrido un error en el servidor"}), 500
     
 
 @api_bp.route('/login', methods=['POST'])
@@ -487,7 +508,7 @@ def send_emergency():
     <ul>
         <li>Latitud: {latitude}</li>
         <li>Longitud: {longitude}</li>
-        <li><a href="https://www.google.com/maps?q=25.76941770710694,-100.42743563520318" target="_blank">Ver ubicación en Google Maps</a></li>
+        <li><a href="https://www.google.com/maps?q={latitude},{longitude}" target="_blank">Ver ubicación en Google Maps</a></li>
     </ul>
     <p>Este es el número de teléfono que registró para emergencias: {user.phone_number}</p>
     <p>Por favor, haz contacto lo antes posible.</p>
@@ -500,8 +521,8 @@ def send_emergency():
     """
 
     message = Mail(
-        from_email='demos@quanthink.com.mx',  # Cambia esto por tu correo
-        to_emails=recipients,  # Enviar a todos los contactos
+        from_email='demos@quanthink.com.mx',  
+        to_emails=recipients,  
         subject=subject,
         html_content=content
     )
@@ -536,7 +557,7 @@ def forgot_password():
     db.session.commit()
 
     message = Mail(
-        from_email='migrappdemo@gmail.com',  
+        from_email='demos@quanthink.com.mx',  
         to_emails=email,
         subject='Código de restablecimiento de contraseña',
         html_content=f'<p>Tu código de restablecimiento de contraseña es: <strong>{reset_code}</strong></p>'
