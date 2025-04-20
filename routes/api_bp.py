@@ -18,6 +18,7 @@ import requests
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
+
 api_bp = Blueprint('api_bp', __name__)
 bcrypt = Bcrypt()
 jwt = JWTManager()
@@ -328,7 +329,7 @@ def add_contact():
 
     new_contact = Contact(
         full_name=data['full_name'],
-        email=data('email'),
+        email=data['email'],
         phone_number=data['phone_number'],
         role=data['role'],
         user_id=data['user_id']
@@ -493,7 +494,7 @@ def send_emergency():
     """
 
     message = Mail(
-        from_email='migrappdemo@gmail.com',  # Cambia esto por tu correo
+        from_email='demos@quanthink.com.mx',  # Cambia esto por tu correo
         to_emails=recipients,  # Enviar a todos los contactos
         subject=subject,
         html_content=content
@@ -510,7 +511,7 @@ def send_emergency():
     except Exception as e:
         print("Error al enviar el correo:", str(e))
         return jsonify({"error": "Error al enviar el correo de emergencia"}), 500
-    
+        
 @api_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
     data = request.json
