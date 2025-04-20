@@ -327,11 +327,11 @@ def add_contact():
         return jsonify({"error": "Missing data"}), 400
 
     new_contact = Contact(
-        full_name=data('full_name'),
+        full_name=data['full_name'],
         email=data('email'),
-        phone_number=data('phone_number'),
-        role=data('role'),
-        user_id=data('user_id')
+        phone_number=data['phone_number'],
+        role=data['role'],
+        user_id=data['user_id']
     )
 
     db.session.add(new_contact)
