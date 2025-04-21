@@ -95,7 +95,7 @@ def cargar_usuarios_iniciales():
 with app.app_context():
     db.init_app(app)
     db.create_all() # Nos aseguramos que este corriendo en el contexto del proyecto.
-    seed_users(100)
+    seed_users(20)
     # cargar_usuarios_iniciales()
 # -----------------------
 
