@@ -12,6 +12,7 @@ from flask_cors import CORS                         # Permisos de consumo
 from extensions import init_extensions              # Necesario para que funcione el executor en varios archivos en simultaneo
 from models import User                             # Importamos el modelo para TodosLosReportes
 from dotenv import load_dotenv
+from seed_users import seed_users
 load_dotenv()
 
 app = Flask(__name__)
@@ -94,6 +95,7 @@ def cargar_usuarios_iniciales():
 with app.app_context():
     db.init_app(app)
     db.create_all() # Nos aseguramos que este corriendo en el contexto del proyecto.
+    seed_users(100)
     # cargar_usuarios_iniciales()
 # -----------------------
 

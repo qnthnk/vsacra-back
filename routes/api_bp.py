@@ -611,3 +611,13 @@ def get_all_users():
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@api_bp.route('/users_free', methods=['GET'])
+def get_all_users_free():
+    """
+    Devuelve un JSON con un array de todos los usuarios serializados.
+    """
+    users = User.query.all()
+    # serialize() ya devuelve dict, así que armamos la lista
+    serialized = [u.serialize() for u in users]
+    return jsonify(serialized), 200
