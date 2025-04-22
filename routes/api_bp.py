@@ -18,6 +18,19 @@ import requests
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 import logging
+from twilio.rest import Client
+import os
+
+# este pedazo es el pedo de sms por twilio
+twilio_bp = Blueprint('twilio_bp', __name__)
+
+account_sid = 'TU_ACCOUNT_SID'
+auth_token = 'TU_AUTH_TOKEN'
+twilio_number = 'whatsapp:+14155238886'  # Este es el número de WhatsApp de Twilio
+sms_number = '+19478004275'       # Ej. +1234567890
+
+client = Client(account_sid, auth_token)
+# hasta aqui llega el pedazo de sms por twilio
 
 
 api_bp = Blueprint('api_bp', __name__)
@@ -43,6 +56,57 @@ s = URLSafeTimedSerializer(os.environ.get('SECRET_KEY'))
 
 delete_tokens = set()
 
+# ruta de twilio para WA de Ruben
+
+@api_bp.route('/send-alert', methods=['POST'])
+def send_alert():
+    from twilio.rest import Client
+
+    try:
+        data = request.get_json()
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        user_id = data.get('user_id')
+
+        if not all([latitude, longitude, user_id]):
+            return jsonify({"error": "Faltan datos"}), 400
+
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "Usuario no encontrado"}), 404
+
+        contacts = Contact.query.filter_by(user_id=user.id).all()
+        if not contacts:
+            return jsonify({"error": "No hay contactos de emergencia"}), 404
+
+        # Configura tus credenciales de Twilio
+        account_sid = os.environ.get("TWILIO_SID")
+        auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+        client = Client(account_sid, auth_token)
+
+        sms_number = os.environ.get("TWILIO_SMS_NUMBER")
+        whatsapp_number = 'whatsapp:+14155238886'
+
+        message_text = (
+            f"🚨 ALERTA DE EMERGENCIA 🚨\n"
+            f"{user.first_name} {user.first_last_name} ha enviado una alerta.\n"
+            f"📍 Ubicación: https://www.google.com/maps?q={latitude},{longitude}\n"
+            f"💉 Alergias: {user.allergy or 'No registradas'}\n"
+            f"🩸 Tipo de sangre: {user.blood_type or 'No especificado'}"
+        )
+
+        enviados = 0
+        for contact in contacts:
+            client.messages.create(body=message_text, from_=sms_number, to=contact.phone_number)
+            client.messages.create(body=message_text, from_=whatsapp_number, to=f'whatsapp:{contact.phone_number}')
+            enviados += 1
+
+        return jsonify({"message": "Alerta enviada", "contacts_notified": enviados}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# aqui termina la ruta de twilio para WA de Ruben
 
 @api_bp.route('/hello', methods=['POST', 'GET'])
 def handle_hello():
