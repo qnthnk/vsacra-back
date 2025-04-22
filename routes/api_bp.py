@@ -519,7 +519,13 @@ def send_emergency_alert():
             try:
                 html_content = f"""
                 <html>
-                <!-- Tu contenido HTML del correo -->
+                <body>
+                <h2>🚨 Alerta de Emergencia 🚨</h2>
+                <p>El usuario <strong>{user.first_name} {user.first_last_name}</strong> ha enviado una alerta.</p>
+                <p><strong>Ubicación:</strong> {latitude}, {longitude}</p>
+                <p>¡Por favor, verifica su situación lo antes posible!</p>
+                </body>
+                </html>
                 </html>
                 """
 
