@@ -474,26 +474,31 @@ def view_complaints():
 
 
 
-@api_bp.route('/emergencyalert', methods=['POST'])
-@jwt_required()
+@api_bp.route('/emergency-alert', methods=['POST', 'OPTIONS'])
+@jwt_required(optional=True)  # Para permitir OPTIONS sin autenticación
 def send_emergency_alert():
-    
+    if request.method == 'OPTIONS':
+        # Respuesta para preflight
+        response = jsonify({"status": "preflight"})
+        response.headers.add("Access-Control-Allow-Origin", "https://www.escudogarcia.live")
+        response.headers.add("Access-Control-Allow-Headers", "Authorization, Content-Type")
+        response.headers.add("Access-Control-Allow-Methods", "POST")
+        return response, 200
+
+    # El resto de tu lógica POST normal...
     try:
-        # 1. Verificar autenticación y obtener usuario actual
         current_user = get_jwt_identity()
-        user = User.query.get(id)
+        user = User.query.filter_by(email=current_user['email']).first()  # Corregido para usar el email del JWT
         
         if not user:
             logger.error(f"Usuario no encontrado: {current_user}")
             return jsonify({"error": "Usuario no autorizado"}), 401
 
-        # 2. Obtener datos de la solicitud
         data = request.get_json()
         if not data:
             logger.error("Solicitud sin datos JSON")
             return jsonify({"error": "Datos JSON requeridos"}), 400
 
-        # 3. Obtener ubicación
         latitude = data.get('latitude', user.latitude)
         longitude = data.get('longitude', user.longitude)
         
@@ -501,46 +506,20 @@ def send_emergency_alert():
             logger.error("Faltan coordenadas de ubicación")
             return jsonify({"error": "Ubicación requerida"}), 400
 
-        # 4. Obtener contactos de emergencia
         contacts = Contact.query.filter_by(user_id=user.id).all()
         if not contacts:
             logger.error(f"Usuario {user.id} no tiene contactos registrados")
             return jsonify({"error": "No hay contactos de emergencia registrados"}), 404
 
-        # 5. Configurar SendGrid
         sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
         from_email = os.environ.get('FROM_EMAIL')
         successful_emails = 0
 
-        # 6. Enviar correo a cada contacto individualmente
         for contact in contacts:
             try:
-                # Crear contenido personalizado para cada contacto
                 html_content = f"""
                 <html>
-                <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2 style="color: #d33;">¡ALERTA DE EMERGENCIA!</h2>
-                    <p>Estimado <strong>{contact.full_name}</strong>,</p>
-                    
-                    <p>El usuario <strong>{user.first_name} {user.first_last_name}</strong> ha activado su botón de emergencia.</p>
-                    
-                    <h3 style="color: #d33;">📌 Ubicación actual:</h3>
-                    <p>{latitude}, {longitude}</p>
-                    <a href="https://www.google.com/maps?q={latitude},{longitude}" target="_blank">Ver en Google Maps</a>
-                    
-                    <h3 style="color: #d33;">📞 Contacto:</h3>
-                    <p>Teléfono: {user.phone_number}</p>
-                    
-                    <h3 style="color: #d33;">⚠️ Datos médicos:</h3>
-                    <ul>
-                        <li>Tipo de sangre: {user.blood_type or "No especificado"}</li>
-                        <li>Alergias: {user.allergy or "Ninguna registrada"}</li>
-                    </ul>
-                    
-                    <p style="margin-top: 20px; font-size: 12px; color: #777;">
-                        Este es un mensaje automático. Por favor responda lo antes posible.
-                    </p>
-                </body>
+                <!-- Tu contenido HTML del correo -->
                 </html>
                 """
 
@@ -551,7 +530,6 @@ def send_emergency_alert():
                     html_content=html_content
                 )
 
-                # Enviar correo
                 response = sg.send(message)
                 if response.status_code == 202:
                     successful_emails += 1
@@ -561,23 +539,26 @@ def send_emergency_alert():
 
             except Exception as e:
                 logger.error(f"Error con contacto {contact.email}: {str(e)}")
-                continue  # Continuar con el siguiente contacto
+                continue
 
-        # 7. Retornar respuesta
-        return jsonify({
+        response = jsonify({
             "status": "success",
             "message": "Alertas enviadas",
             "contacts_notified": successful_emails,
             "total_contacts": len(contacts)
-        }), 200
+        })
+        response.headers.add("Access-Control-Allow-Origin", "https://www.escudogarcia.live")
+        return response, 200
 
     except Exception as e:
         logger.error(f"Error en emergencia: {str(e)}", exc_info=True)
-        return jsonify({
+        response = jsonify({
             "status": "error",
             "message": "Error al procesar emergencia",
             "error": str(e)
-        }), 500
+        })
+        response.headers.add("Access-Control-Allow-Origin", "https://www.escudogarcia.live")
+        return response, 500
         
 @api_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
