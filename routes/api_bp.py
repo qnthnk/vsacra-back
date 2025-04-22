@@ -17,12 +17,15 @@ from itsdangerous import URLSafeTimedSerializer
 import requests
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
+import logging
 
 
 api_bp = Blueprint('api_bp', __name__)
 bcrypt = Bcrypt()
 jwt = JWTManager()
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 client = openai.OpenAI(
@@ -376,13 +379,13 @@ def complaint():
         return jsonify({"error": "Missing data"}), 400
 
     new_complaint = Complaint(
-        cause=data('cause'),
-        url_image_complaint=data('url_image_complaint'),
-        complaint_comment=data('complaint_comment'),
-        status=data('status'),
-        latitude = data.get('latitude'),
-        longitude = data.get('longitude'),
-        user_id=data('user_id')
+        cause=data['cause'],
+        url_image_complaint=data['url_image_complaint'],
+        complaint_comment=data['complaint_comment'],
+        status=data['status'],
+        latitude=data.get('latitude'),
+        longitude=data.get('longitude'),
+        user_id=data['user_id']
     )
 
     db.session.add(new_complaint)
@@ -470,74 +473,111 @@ def view_complaints():
     return jsonify([complaint.serialize() for complaint in complaints]), 200
 
 
-@api_bp.route('/emergency', methods=['POST'])
-# @jwt_required()
-def send_emergency():
-    data = request.json
-    print("Datos recibidos en el backend:", data)  # Log de los datos recibidos
 
-    latitude = data.get('latitude')
-    longitude = data.get('longitude')
-    id = data.get('id')
-    print(f'esta es la longitud: {longitude}, y esta es la latitud: {latitude}')
-
-    if not latitude or not longitude:
-        return jsonify({"error": "Coordenadas no proporcionadas"}), 400
-    
-    
-    user = User.query.get(id)
-
-    if not user:
-        return jsonify({"error": "Usuario no encontrado"}), 404
-
-    # Obtener los contactos del usuario
-    contacts = Contact.query.filter_by(user_id=user.id).all()
-
-    if not contacts:
-        return jsonify({"error": "No hay contactos de emergencia registrados"}), 404
-
-    # Extraer los correos electrónicos de los contactos
-    recipients = [contact.email for contact in contacts]
-
-    # Crear el contenido del correo
-    subject = "¡Emergencia! Necesito ayuda"
-    content = f"""
-    <h1>¡Emergencia!</h1>
-    <p>El usuario {user.first_name} {user.first_last_name} ha activado el botón de emergencia.</p>
-    <p>Sus coordenadas actuales son:</p>
-    <ul>
-        <li>Latitud: {latitude}</li>
-        <li>Longitud: {longitude}</li>
-        <li><a href="https://www.google.com/maps?q={latitude},{longitude}" target="_blank">Ver ubicación en Google Maps</a></li>
-    </ul>
-    <p>Este es el número de teléfono que registró para emergencias: {user.phone_number}</p>
-    <p>Por favor, haz contacto lo antes posible.</p>
-      <p>En caso de ser requerido, estos son sus datos clínicos prioritarios:</p>
-    <ul>
-        <li>Tipo de sangre: {user.blood_type}</li>
-        <li>Alergias: {user.allergy}</li>
-        <li>Enfermedades crónicas: {user.disease}</li>
-    </ul>
-    """
-
-    message = Mail(
-        from_email='demos@quanthink.com.mx',  
-        to_emails=recipients,  
-        subject=subject,
-        html_content=content
-    )
+@api_bp.route('/emergencyalert', methods=['POST'])
+@jwt_required()
+def send_emergency_alert():
     
     try:
-        sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
-        response = sg.send(message)
-        print(response.status_code)
-        print(response.body)
-        print(response.headers)
+        # 1. Verificar autenticación y obtener usuario actual
+        current_user = get_jwt_identity()
+        user = User.query.get(id)
+        
+        if not user:
+            logger.error(f"Usuario no encontrado: {current_user}")
+            return jsonify({"error": "Usuario no autorizado"}), 401
 
-        return jsonify({"message": "Correo de emergencia enviado correctamente"}), 200
+        # 2. Obtener datos de la solicitud
+        data = request.get_json()
+        if not data:
+            logger.error("Solicitud sin datos JSON")
+            return jsonify({"error": "Datos JSON requeridos"}), 400
+
+        # 3. Obtener ubicación
+        latitude = data.get('latitude', user.latitude)
+        longitude = data.get('longitude', user.longitude)
+        
+        if not all([latitude, longitude]):
+            logger.error("Faltan coordenadas de ubicación")
+            return jsonify({"error": "Ubicación requerida"}), 400
+
+        # 4. Obtener contactos de emergencia
+        contacts = Contact.query.filter_by(user_id=user.id).all()
+        if not contacts:
+            logger.error(f"Usuario {user.id} no tiene contactos registrados")
+            return jsonify({"error": "No hay contactos de emergencia registrados"}), 404
+
+        # 5. Configurar SendGrid
+        sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
+        from_email = os.environ.get('FROM_EMAIL')
+        successful_emails = 0
+
+        # 6. Enviar correo a cada contacto individualmente
+        for contact in contacts:
+            try:
+                # Crear contenido personalizado para cada contacto
+                html_content = f"""
+                <html>
+                <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #d33;">¡ALERTA DE EMERGENCIA!</h2>
+                    <p>Estimado <strong>{contact.full_name}</strong>,</p>
+                    
+                    <p>El usuario <strong>{user.first_name} {user.first_last_name}</strong> ha activado su botón de emergencia.</p>
+                    
+                    <h3 style="color: #d33;">📌 Ubicación actual:</h3>
+                    <p>{latitude}, {longitude}</p>
+                    <a href="https://www.google.com/maps?q={latitude},{longitude}" target="_blank">Ver en Google Maps</a>
+                    
+                    <h3 style="color: #d33;">📞 Contacto:</h3>
+                    <p>Teléfono: {user.phone_number}</p>
+                    
+                    <h3 style="color: #d33;">⚠️ Datos médicos:</h3>
+                    <ul>
+                        <li>Tipo de sangre: {user.blood_type or "No especificado"}</li>
+                        <li>Alergias: {user.allergy or "Ninguna registrada"}</li>
+                    </ul>
+                    
+                    <p style="margin-top: 20px; font-size: 12px; color: #777;">
+                        Este es un mensaje automático. Por favor responda lo antes posible.
+                    </p>
+                </body>
+                </html>
+                """
+
+                message = Mail(
+                    from_email=from_email,
+                    to_emails=contact.email,
+                    subject=f"🚨 ALERTA DE EMERGENCIA - {user.first_name} {user.first_last_name}",
+                    html_content=html_content
+                )
+
+                # Enviar correo
+                response = sg.send(message)
+                if response.status_code == 202:
+                    successful_emails += 1
+                    logger.info(f"Correo enviado a {contact.email}")
+                else:
+                    logger.error(f"Error al enviar a {contact.email}: {response.body}")
+
+            except Exception as e:
+                logger.error(f"Error con contacto {contact.email}: {str(e)}")
+                continue  # Continuar con el siguiente contacto
+
+        # 7. Retornar respuesta
+        return jsonify({
+            "status": "success",
+            "message": "Alertas enviadas",
+            "contacts_notified": successful_emails,
+            "total_contacts": len(contacts)
+        }), 200
+
     except Exception as e:
-        print("Error al enviar el correo:", str(e))
-        return jsonify({"error": "Error al enviar el correo de emergencia"}), 500
+        logger.error(f"Error en emergencia: {str(e)}", exc_info=True)
+        return jsonify({
+            "status": "error",
+            "message": "Error al procesar emergencia",
+            "error": str(e)
+        }), 500
         
 @api_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
