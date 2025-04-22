@@ -475,7 +475,7 @@ def view_complaints():
 
 
 @api_bp.route('/emergency-alert', methods=['POST', 'OPTIONS'])
-@jwt_required(optional=True)  # Para permitir OPTIONS sin autenticación
+#@jwt_required(optional=True)  # Para permitir OPTIONS sin autenticación
 def send_emergency_alert():
     if request.method == 'OPTIONS':
         # Respuesta para preflight
