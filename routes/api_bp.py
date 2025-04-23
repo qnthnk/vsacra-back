@@ -684,31 +684,39 @@ def reset_password():
 
     return jsonify({"message": "Contraseña restablecida exitosamente"}), 200 
 
-@api_bp.route('/users', methods=['GET'])
-@jwt_required()
-def get_all_users():
-    try:
-        current_user = get_jwt_identity()
-        if current_user['role'] != 'admin':
-            return jsonify({"error": "Acceso no autorizado"}), 403
-        
-        # Obtener todos los usuarios
-        users = User.query.all()
-        
-        # Serializar los datos de los usuarios
-        users_data = [user.serialize() for user in users]
-        
-        return jsonify(users_data), 200
-        
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    
 @api_bp.route('/users_free', methods=['GET'])
 def get_all_users_free():
-    """
-    Devuelve un JSON con un array de todos los usuarios serializados.
-    """
+    
     users = User.query.all()
     # serialize() ya devuelve dict, así que armamos la lista
     serialized = [u.serialize() for u in users]
+    return jsonify(serialized), 200
+
+
+    
+@api_bp.route('/usercontacts/<int:id>', methods=['GET'])
+def get_user_contacts(id):
+    print("Entrando a get_user_contacts")
+    try:
+       
+        user = User.query.get(id)
+        if not user:
+            return jsonify({"error": "Usuario no encontrado"}), 404
+        
+        
+        contacts = Contact.query.filter_by(user_id=id).all()
+        return jsonify({
+            "user": user.serialize(),
+            "contacts": [c.serialize() for c in contacts]
+        }), 200
+    except Exception as e:
+        logger.error(f"Error en get_user_contacts: {str(e)}")
+        return jsonify({"error": "Error interno del servidor"}), 500
+
+@api_bp.route('/allcontacts', methods=['GET'])
+def get_all_contacts():
+    
+    contacts = Contact.query.all()
+    # serialize() ya devuelve dict, así que armamos la lista
+    serialized = [c.serialize() for c in contacts]
     return jsonify(serialized), 200
