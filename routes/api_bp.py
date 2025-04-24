@@ -84,8 +84,8 @@ def send_alert():
         auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
         client = Client(account_sid, auth_token)
 
-        sms_number = os.environ.get("TWILIO_SMS_NUMBER")
-        whatsapp_number = 'whatsapp:+14155238886'
+        # sms_number = os.environ.get("TWILIO_SMS_NUMBER")
+        whatsapp_number = os.environ.get("TWILIO_WA_NUMBER")
 
         message_text = (
             f"🚨 ALERTA DE EMERGENCIA 🚨\n"
@@ -97,8 +97,8 @@ def send_alert():
 
         enviados = 0
         for contact in contacts:
-            client.messages.create(body=message_text, from_=sms_number, to=contact.phone_number)
-            client.messages.create(body=message_text, from_=whatsapp_number, to=f'whatsapp:{contact.phone_number}')
+            # client.messages.create(body=message_text, from_=sms_number, to=contact.phone_number)
+            client.messages.create(body=message_text, from_=whatsapp_number, to={contact.phone_number})
             enviados += 1
 
         return jsonify({"message": "Alerta enviada", "contacts_notified": enviados}), 200
@@ -700,6 +700,42 @@ def get_all_users():
         
         return jsonify(users_data), 200
         
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@api_bp.route('/get_map_url', methods=['POST'])
+# @jwt_required()
+def get_map_url():
+    try:
+        logger.info("entro en la ruta get_map_url")
+        # Obtener los datos enviados desde el frontend
+        data = request.get_json()
+        url = data.get('url')
+        
+        if not url:
+            return jsonify({"error": "URL no proporcionada"}), 400
+
+        # Realizar la solicitud a la URL inicial
+        response = requests.get(url)
+        
+        if response.status_code != 200:
+            return jsonify({"error": f"Error al consultar la URL: {response.status_code}"}), response.status_code
+
+        # Parsear la respuesta JSON
+        json_data = response.json()
+
+        if not json_data or not json_data[0].get('path') or not json_data[0].get('archivo'):
+            return jsonify({"error": "Respuesta JSON no válida o incompleta"}), 400
+
+        # Construir la URL final
+        base_url = "https://storage.googleapis.com/mapoteca/"
+        path = json_data[0]['path'].replace(" ", "%20")  # Codificar espacios
+        archivo = json_data[0]['archivo']
+        final_url = f"{base_url}{path}{archivo}"
+        print("ESTA ES LA URL FINAL: ",final_url)
+        # Devolver la URL final
+        return jsonify({"url": final_url}), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
