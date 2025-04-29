@@ -609,6 +609,10 @@ def send_emergency():
 
     if not user_id:
         return jsonify({'success': False, 'error': 'user_id is required'}), 400
+    
+    user = User.query.get(id)
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
 
     contacts = Contact.query.filter_by(user_id=user_id).all()
     
@@ -628,7 +632,7 @@ def send_emergency():
         'From': {'Email': sender_email, 'Name': 'Quanthink'},
         'To': recipients,
         'Subject': 'Emergencia',
-        'TextPart': f'El usuario ha activado la alarma de emergencia, contáctalo lo antes posible. Ubicación:\nLatitud: {latitude}\nLongitud: {longitude}\n\nPor favor, verifica la situación.',
+        'TextPart': f'El usuario {user.first_name} {user.first_last_name} ha activado la alarma de emergencia, contáctalo lo antes posible. Ubicación:\nLatitud: {latitude}\nLongitud: {longitude}\n\nPor favor, verifica la situación. \n\n-Tipo de sangre: {user.blood_type}. \n\nAlergias: {user.allergy}. \n\nEnfermedades: {user.disease}.',
     }]}
     try:
         result = mailjet.send.create(data=mail_data)
