@@ -15,22 +15,10 @@ import openai
 import random
 from itsdangerous import URLSafeTimedSerializer
 import requests
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
 import logging
-from twilio.rest import Client
 import os
-
-# este pedazo es el pedo de sms por twilio
-twilio_bp = Blueprint('twilio_bp', __name__)
-
-account_sid = 'TU_ACCOUNT_SID'
-auth_token = 'TU_AUTH_TOKEN'
-twilio_number = 'whatsapp:+14155238886'  # Este es el número de WhatsApp de Twilio
-sms_number = '+19478004275'       # Ej. +1234567890
-
-client = Client(account_sid, auth_token)
-# hasta aqui llega el pedazo de sms por twilio
+import io, os, base64, textwrap
+from mailjet_rest import Client
 
 
 api_bp = Blueprint('api_bp', __name__)
@@ -51,62 +39,9 @@ BASE_URL = os.environ.get("BASE_URL")
 WEATHERAPI_KEY= os.environ.get("WEATHERAPI_KEY")
 ADMIN_REQUIRED_EMAIL = 'admin@viasacra.com'  
 GOOGLE_MAPS_API= os.environ.get("GOOGLE_MAPS_API")
-SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 s = URLSafeTimedSerializer(os.environ.get('SECRET_KEY'))
 
 delete_tokens = set()
-
-# ruta de twilio para WA de Ruben
-
-@api_bp.route('/send-alert', methods=['POST'])
-def send_alert():
-    from twilio.rest import Client
-
-    try:
-        data = request.get_json()
-        latitude = data.get('latitude')
-        longitude = data.get('longitude')
-        user_id = data.get('user_id')
-
-        if not all([latitude, longitude, user_id]):
-            return jsonify({"error": "Faltan datos"}), 400
-
-        user = User.query.get(user_id)
-        if not user:
-            return jsonify({"error": "Usuario no encontrado"}), 404
-
-        contacts = Contact.query.filter_by(user_id=user.id).all()
-        if not contacts:
-            return jsonify({"error": "No hay contactos de emergencia"}), 404
-
-        # Configura tus credenciales de Twilio
-        account_sid = os.environ.get("TWILIO_SID")
-        auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
-        client = Client(account_sid, auth_token)
-
-        sms_number = os.environ.get("TWILIO_SMS_NUMBER")
-        whatsapp_number = 'whatsapp:+14155238886'
-
-        message_text = (
-            f"🚨 ALERTA DE EMERGENCIA 🚨\n"
-            f"{user.first_name} {user.first_last_name} ha enviado una alerta.\n"
-            f"📍 Ubicación: https://www.google.com/maps?q={latitude},{longitude}\n"
-            f"💉 Alergias: {user.allergy or 'No registradas'}\n"
-            f"🩸 Tipo de sangre: {user.blood_type or 'No especificado'}"
-        )
-
-        enviados = 0
-        for contact in contacts:
-            client.messages.create(body=message_text, from_=sms_number, to=contact.phone_number)
-            client.messages.create(body=message_text, from_=whatsapp_number, to=f'whatsapp:{contact.phone_number}')
-            enviados += 1
-
-        return jsonify({"message": "Alerta enviada", "contacts_notified": enviados}), 200
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# aqui termina la ruta de twilio para WA de Ruben
 
 @api_bp.route('/hello', methods=['POST', 'GET'])
 def handle_hello():
@@ -536,130 +471,37 @@ def view_complaints():
     complaints = Complaint.query.filter_by(user_id=user_id).all()
     return jsonify([complaint.serialize() for complaint in complaints]), 200
 
-
-
-@api_bp.route('/emergency-alert', methods=['POST', 'OPTIONS'])
-#@jwt_required(optional=True)  # Para permitir OPTIONS sin autenticación
-def send_emergency_alert():
-    if request.method == 'OPTIONS':
-        # Respuesta para preflight
-        response = jsonify({"status": "preflight"})
-        response.headers.add("Access-Control-Allow-Origin", "https://www.escudogarcia.live")
-        response.headers.add("Access-Control-Allow-Headers", "Authorization, Content-Type")
-        response.headers.add("Access-Control-Allow-Methods", "POST")
-        return response, 200
-
-    # El resto de tu lógica POST normal...
-    try:
-        current_user = get_jwt_identity()
-        user = User.query.filter_by(email=current_user['email']).first()  # Corregido para usar el email del JWT
         
-        if not user:
-            logger.error(f"Usuario no encontrado: {current_user}")
-            return jsonify({"error": "Usuario no autorizado"}), 401
+# @api_bp.route('/forgot-password', methods=['POST'])
+# def forgot_password():
+#     data = request.json
+#     email = data.get('email')
 
-        data = request.get_json()
-        if not data:
-            logger.error("Solicitud sin datos JSON")
-            return jsonify({"error": "Datos JSON requeridos"}), 400
+#     if not email:
+#         return jsonify({"error": "Email es requerido"}), 400
 
-        latitude = data.get('latitude', user.latitude)
-        longitude = data.get('longitude', user.longitude)
-        
-        if not all([latitude, longitude]):
-            logger.error("Faltan coordenadas de ubicación")
-            return jsonify({"error": "Ubicación requerida"}), 400
+#     user = User.query.filter_by(email=email).first()
+#     if not user:
+#         return jsonify({"error": "Usuario no encontrado"}), 404
 
-        contacts = Contact.query.filter_by(user_id=user.id).all()
-        if not contacts:
-            logger.error(f"Usuario {user.id} no tiene contactos registrados")
-            return jsonify({"error": "No hay contactos de emergencia registrados"}), 404
+#     reset_code = str(random.randint(1000, 9999))
 
-        sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
-        from_email = os.environ.get('FROM_EMAIL')
-        successful_emails = 0
+#     user.reset_code = reset_code
+#     db.session.commit()
 
-        for contact in contacts:
-            try:
-                html_content = f"""
-                <html>
-                <body>
-                <h2>🚨 Alerta de Emergencia 🚨</h2>
-                <p>El usuario <strong>{user.first_name} {user.first_last_name}</strong> ha enviado una alerta.</p>
-                <p><strong>Ubicación:</strong> {latitude}, {longitude}</p>
-                <p>¡Por favor, verifica su situación lo antes posible!</p>
-                </body>
-                </html>
-                </html>
-                """
+#     message = Mail(
+#         from_email='demos@quanthink.com.mx',  
+#         to_emails=email,
+#         subject='Código de restablecimiento de contraseña',
+#         html_content=f'<p>Tu código de restablecimiento de contraseña es: <strong>{reset_code}</strong></p>'
+#     )
 
-                message = Mail(
-                    from_email=from_email,
-                    to_emails=contact.email,
-                    subject=f"🚨 ALERTA DE EMERGENCIA - {user.first_name} {user.first_last_name}",
-                    html_content=html_content
-                )
-
-                response = sg.send(message)
-                if response.status_code == 202:
-                    successful_emails += 1
-                    logger.info(f"Correo enviado a {contact.email}")
-                else:
-                    logger.error(f"Error al enviar a {contact.email}: {response.body}")
-
-            except Exception as e:
-                logger.error(f"Error con contacto {contact.email}: {str(e)}")
-                continue
-
-        response = jsonify({
-            "status": "success",
-            "message": "Alertas enviadas",
-            "contacts_notified": successful_emails,
-            "total_contacts": len(contacts)
-        })
-        response.headers.add("Access-Control-Allow-Origin", "https://www.escudogarcia.live")
-        return response, 200
-
-    except Exception as e:
-        logger.error(f"Error en emergencia: {str(e)}", exc_info=True)
-        response = jsonify({
-            "status": "error",
-            "message": "Error al procesar emergencia",
-            "error": str(e)
-        })
-        response.headers.add("Access-Control-Allow-Origin", "https://www.escudogarcia.live")
-        return response, 500
-        
-@api_bp.route('/forgot-password', methods=['POST'])
-def forgot_password():
-    data = request.json
-    email = data.get('email')
-
-    if not email:
-        return jsonify({"error": "Email es requerido"}), 400
-
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        return jsonify({"error": "Usuario no encontrado"}), 404
-
-    reset_code = str(random.randint(1000, 9999))
-
-    user.reset_code = reset_code
-    db.session.commit()
-
-    message = Mail(
-        from_email='demos@quanthink.com.mx',  
-        to_emails=email,
-        subject='Código de restablecimiento de contraseña',
-        html_content=f'<p>Tu código de restablecimiento de contraseña es: <strong>{reset_code}</strong></p>'
-    )
-
-    try:
-        sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
-        response = sg.send(message)
-        return jsonify({"message": "Código de restablecimiento enviado"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+#     try:
+#         sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
+#         response = sg.send(message)
+#         return jsonify({"message": "Código de restablecimiento enviado"}), 200
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 500
     
 @api_bp.route('/reset-password', methods=['POST'])
 def reset_password():
@@ -757,3 +599,44 @@ def get_map_url():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@api_bp.route('/emergency', methods=['POST'])
+def send_emergency():
+    data = request.get_json()
+    first_name = data.get('first_name')
+    first_last_name = data.get('first_last_name')
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
+    user_id = data.get('user_id')  
+
+    if not user_id:
+        return jsonify({'success': False, 'error': 'user_id is required'}), 400
+
+    contacts = Contact.query.filter_by(user_id=user_id).all()
+    
+    if not contacts:
+        return jsonify({'success': False, 'error': 'No contacts found for this user'}), 404
+
+    recipients = [{'Email': contact.email} for contact in contacts]
+
+    # Enviar email vía Mailjet
+    mj_api_key = os.getenv('MJ_APIKEY_PUBLIC')
+    mj_secret_key = os.getenv('MJ_APIKEY_PRIVATE')
+    sender_email = os.getenv('MJ_SENDER_EMAIL')
+    
+
+    mailjet = Client(auth=(mj_api_key, mj_secret_key), version='v3.1')
+    mail_data = {'Messages': [{
+        'From': {'Email': sender_email, 'Name': 'Quanthink'},
+        'To': [{'Email': recipients}],
+        'Subject': 'Emergencia',
+        'TextPart': f'El usuario {first_name} {first_last_name} ha activado la alarma de emergencia, contáctalo lo antes posible. Ubicación:\nLatitud: {latitude}\nLongitud: {longitude}\n\nPor favor, verifica la situación.',
+    }]}
+    try:
+        result = mailjet.send.create(data=mail_data)
+        if result.status_code in (200, 201):
+            return jsonify({'success': True}), 200
+        return jsonify({'success': False, 'error': result.text}), result.status_code
+    except Exception as e:
+        print('Error enviando email vía Mailjet:', e)
+        return jsonify({'success': False, 'error': str(e)}), 500
