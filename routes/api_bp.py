@@ -603,11 +603,9 @@ def get_map_url():
 @api_bp.route('/emergency', methods=['POST'])
 def send_emergency():
     data = request.get_json()
-    first_name = data.get('first_name')
-    first_last_name = data.get('first_last_name')
     latitude = data.get('latitude')
     longitude = data.get('longitude')
-    user_id = data.get('user_id')  
+    user_id = data.get('id')  
 
     if not user_id:
         return jsonify({'success': False, 'error': 'user_id is required'}), 400
