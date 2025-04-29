@@ -628,7 +628,7 @@ def send_emergency():
         'From': {'Email': sender_email, 'Name': 'Quanthink'},
         'To': recipients,
         'Subject': 'Emergencia',
-        'TextPart': f'El usuario {first_name} {first_last_name} ha activado la alarma de emergencia, contáctalo lo antes posible. Ubicación:\nLatitud: {latitude}\nLongitud: {longitude}\n\nPor favor, verifica la situación.',
+        'TextPart': f'El usuario ha activado la alarma de emergencia, contáctalo lo antes posible. Ubicación:\nLatitud: {latitude}\nLongitud: {longitude}\n\nPor favor, verifica la situación.',
     }]}
     try:
         result = mailjet.send.create(data=mail_data)
