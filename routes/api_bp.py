@@ -624,11 +624,15 @@ def send_emergency():
     
 
     mailjet = Client(auth=(mj_api_key, mj_secret_key), version='v3.1')
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+
     mail_data = {'Messages': [{
         'From': {'Email': sender_email, 'Name': 'Quanthink'},
         'To': recipients,
         'Subject': 'Emergencia',
-        'TextPart': f'El usuario ha activado la alarma de emergencia, contáctalo lo antes posible. Ubicación:\nLatitud: {latitude}\nLongitud: {longitude}\n\nPor favor, verifica la situación.',
+        'TextPart': f'{user.first_name} {user.first_last_name} ha activado el botón de emergencia y está en peligro. Por favor contáctala lo antes posible. Su teléfono es {user.phone_number}. Esta es su ubicación: https://www.google.com/maps?q={latitude},{longitude}',
     }]}
     try:
         result = mailjet.send.create(data=mail_data)
